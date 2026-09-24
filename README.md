@@ -1,6 +1,6 @@
 # PacketLED
 
-Packet communication over bidirectional LEDs, inspired by Packet Radio.Packet communication over bidirectional LEDs.
+Packet communication over bidirectional LEDs, inspired by Packet Radio.
 
 ## Overview
 

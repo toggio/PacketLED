@@ -1,0 +1,6 @@
+* text=auto eol=lf
+
+# Build and test tooling, not needed by library users
+extras/test export-ignore
+.gitattributes export-ignore
+.gitignore export-ignore

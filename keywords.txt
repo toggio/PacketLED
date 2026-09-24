@@ -1,0 +1,49 @@
+#######################################
+# Syntax Coloring Map For PacketLED
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+PacketLED	KEYWORD1
+ArduinoLedPhy	KEYWORD1
+LedPhy	KEYWORD1
+FrameInfo	KEYWORD1
+Stats	KEYWORD1
+Result	KEYWORD1
+lx25	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+begin	KEYWORD2
+end	KEYWORD2
+beginPacket	KEYWORD2
+endPacket	KEYWORD2
+send	KEYWORD2
+parsePacket	KEYWORD2
+packetAvailable	KEYWORD2
+packetSession	KEYWORD2
+packetSeq	KEYWORD2
+packetLevel	KEYWORD2
+packetMargin	KEYWORD2
+onFrame	KEYWORD2
+lastFrame	KEYWORD2
+stats	KEYWORD2
+resetStats	KEYWORD2
+session	KEYWORD2
+lastAttempts	KEYWORD2
+bitRate	KEYWORD2
+maxWindowUs	KEYWORD2
+darkLevel	KEYWORD2
+measureLight	KEYWORD2
+setLed	KEYWORD2
+resultText	KEYWORD2
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+
+PACKETLED_VERSION	LITERAL1

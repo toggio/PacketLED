@@ -6,6 +6,8 @@ Packet communication over bidirectional LEDs, inspired by Packet Radio.
 
 PacketLED lets two boards exchange data through a pair of ordinary LEDs placed face to face. There is no photodiode: each LED emits light to transmit, and is used as a light sensor to receive. One LED and one resistor per board are all you need.
 
+With clear, narrow-beam LEDs the link has been tested up to 2.5 m at 1024 bit/s. Ordinary diffused LEDs work over a few centimeters.
+
 ## Features
 
 - **Two-way link with one part per side.** The same LED sends and receives, so a device can talk through the status LED it already has.

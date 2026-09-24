@@ -64,10 +64,12 @@ constexpr uint32_t kMaxBitRate = 1024;
 
 constexpr uint32_t kSyncUs = 20000;
 constexpr uint32_t kSyncMinUs = 17000;         // well above a 50 Hz half-wave (10 ms)
+constexpr uint32_t kSyncMinUnseenUs = 5000;    // when the start of the light was not seen
 constexpr uint32_t kSyncMaxUs = 35000;
 constexpr uint32_t kGuardUs = 3000;
 constexpr uint32_t kListenWindowUs = 600;      // minimum; longer at low rates (see begin())
 constexpr uint32_t kMaxListenWindowUs = 1200;
+constexpr uint32_t kListenGapUs = 3000;        // a longer pause between two readings: the listener was away
 constexpr uint16_t kMinLightLsb = 60;          // SYNC detection: minimum rise over the dark level
 constexpr uint8_t kNoiseFactor = 3;            // ... and at least this many times the resting noise
 constexpr uint32_t kAmbientAdoptUs = 100000;   // steady light longer than this becomes the new dark level
@@ -85,6 +87,7 @@ constexpr uint16_t kMinSignalLsb = 30;
 
 constexpr uint8_t kMaxRetries = 3;
 constexpr uint32_t kTurnaroundMs = 20;
+constexpr uint32_t kTxGapMs = 10;              // pause after the end of a received frame before sending
 constexpr uint32_t kAckTimeoutMs = 400;
 constexpr uint8_t kTypeData = 0x44;
 constexpr uint8_t kTypeAck = 0x41;
@@ -237,6 +240,8 @@ class PacketLED PACKETLED_BASE {
   bool prevLight_ = false;
   bool windowChosen_ = false;
   uint32_t riseStart_ = 0, lastLitStart_ = 0;
+  uint32_t lastListenUs_ = 0, lastRxEndUs_ = 0;
+  bool resumed_ = false, riseSeen_ = true;
   uint32_t frameWindowUs_ = 0;
 
   uint8_t txBuf_[lx25::kMaxPayload] = {};

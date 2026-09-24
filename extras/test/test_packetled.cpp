@@ -110,6 +110,64 @@ static Trial runTrial(uint32_t bitRate, const SensorModel &m, uint32_t seed, con
   return r;
 }
 
+// Drops the events before t, keeping the LED state at t.
+static void prune(Channel &ch, double t) {
+  size_t i = 0;
+  while (i + 1 < ch.ev.size() && ch.ev[i + 1].t <= t) ++i;
+  if (i > 0) ch.ev.erase(ch.ev.begin(), ch.ev.begin() + i);
+}
+
+// Confirmed 64-byte packets sent back to back, as with the Benchmark 'R'
+// command. After each packet the receiver spends appDelayUs before listening
+// again (checking the data, printing...), while the sender goes on as soon as
+// it has the acknowledgement. Returns the packets that got through at the
+// first attempt.
+static int backToBack(uint32_t bitRate, double gain, double appDelayUs, uint32_t seed, int n) {
+  Channel chA, chB;
+  SensorModel m;
+  m.gain = gain;
+  SimPhy pa(chA, chB, m, seed * 3 + 1), pb(chB, chA, m, seed * 3 + 2);
+  pa.setClock(0, 1000, 30);
+  pb.setClock(0, 777777, -30);
+  PacketLED a(pa), b(pb);
+  a.begin(bitRate);
+  b.begin(bitRate);
+  chA.clear();
+  chB.clear();
+  pa.setTrueNow(20000);
+  pb.setTrueNow(0);
+  uint8_t buf[lx25::kMaxPayload];
+  for (uint8_t i = 0; i < lx25::kMaxPayload; ++i) buf[i] = (uint8_t)(i * 37 + seed);
+  int firstTry = 0;
+  for (int i = 0; i < n; ++i) {
+    a.beginPacket();
+    a.write(buf, lx25::kMaxPayload);
+    a.endPacket(false);  // one attempt; the sender's retries are not simulated
+    const double aEnd = pa.trueNow();
+    bool got = false;
+    while (pb.trueNow() < aEnd + 150000) {
+      if (b.parsePacket() > 0) {
+        got = true;
+        break;
+      }
+    }
+    if (got) {
+      ++firstTry;
+      const double bEnd = pb.trueNow();
+      pb.setTrueNow(bEnd + appDelayUs);
+      const uint32_t before = a.stats().framesOk;
+      while (pa.trueNow() < bEnd + 150000 && a.stats().framesOk == before) a.parsePacket();
+    } else {
+      // Missed: the sender would time out and retry later.
+      pa.setTrueNow((pa.trueNow() > pb.trueNow() ? pa.trueNow() : pb.trueNow()) + 450000);
+    }
+    const double oldest = (pa.trueNow() < pb.trueNow() ? pa.trueNow() : pb.trueNow()) - 50000;
+    prune(chA, oldest);
+    prune(chB, oldest);
+  }
+  return firstTry;
+}
+
 static void makePayload(std::mt19937 &rng, uint8_t *buf, uint8_t &len) {
   len = (uint8_t)(1 + rng() % lx25::kMaxPayload);
   if (rng() % 4 == 0) len = lx25::kMaxPayload;
@@ -235,6 +293,39 @@ int main() {
       printf("%4u bit/s, hum %.1f: false SYNCs %lu, rejected pulses %lu\n", rate, hum,
              (unsigned long)b.stats().syncs, (unsigned long)b.stats().syncRejected);
       if (b.stats().syncs) ++failures;
+    }
+  }
+
+  printf("\n== Idle listening with long light pulses (15 ms every 40 ms, 5 s): false SYNCs ==\n");
+  for (uint32_t rate : {1024u, 256u}) {
+    for (double amp : {0.3, 1.0, 3.0}) {
+      Channel chA, chB;
+      SensorModel m;
+      m.pulses = amp;
+      m.pulseOnUs = 15000;
+      m.pulsePeriodUs = 40000;
+      SimPhy pb(chB, chA, m, 98);
+      PacketLED b(pb);
+      b.begin(rate);
+      const double end = pb.trueNow() + 5e6;
+      while (pb.trueNow() < end) b.parsePacket();
+      printf("%4u bit/s, pulses %.1f: false SYNCs %lu, rejected pulses %lu\n", rate, amp,
+             (unsigned long)b.stats().syncs, (unsigned long)b.stats().syncRejected);
+      if (b.stats().syncs) ++failures;
+    }
+  }
+
+  printf("\n== Back-to-back packets, receiver busy after each one: first-attempt deliveries ==\n");
+  for (uint32_t rate : {1024u, 256u}) {
+    for (double gain : {1.1, 15.0}) {
+      printf("%4u bit/s, gain %4.1f:", rate, gain);
+      for (double delayMs : {0.0, 2.0, 5.0, 10.0, 20.0}) {
+        const int n = 40;
+        const int ok = backToBack(rate, gain, delayMs * 1000, (uint32_t)(rate + gain * 10 + delayMs), n);
+        printf("  %2.0f ms %2d/%d", delayMs, ok, n);
+        if (ok != n) ++failures;
+      }
+      printf("\n");
     }
   }
 

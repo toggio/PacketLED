@@ -50,6 +50,8 @@ struct SensorModel {
   double deadZone = 100;       // LSB lost near 0 V
   double ambient = 0;          // LSB per us of ambient light
   double hum = 0;              // mains flicker amplitude (LSB per us, 50 Hz)
+  double pulses = 0;           // square-wave flicker (LSB per us while on)
+  double pulseOnUs = 16000, pulsePeriodUs = 20000;
   double noiseLsb = 5, noiseRel = 0.03;
   double setupUs = 45;         // call -> start of integration
   double sampleDelayUs = 25;   // the ADC samples a little after the read call
@@ -98,6 +100,7 @@ class SimPhy : public LedPhy {
     const double humNow = m_.hum * span * 0.5 * (1 + std::sin(6.2831853 * 50e-6 * start));
     const double ambient = m_.ambient + (start >= stepAt_ ? stepAmbient_ : 0);
     double v = m_.gain * rx_.litTime(start, end) + ambient * span + humNow - m_.deadZone;
+    if (m_.pulses > 0) v += m_.pulses * pulseOnTime(start, end);
     if (v < 0) v = 0;
     v += gauss_(rng_) * (m_.noiseLsb + m_.noiseRel * v);
     if (v < 0) v = 0;
@@ -108,6 +111,17 @@ class SimPhy : public LedPhy {
   uint32_t random32() override { return (uint32_t)rng_(); }
 
  private:
+  // Time within [a, b) during which the square-wave flicker is on.
+  double pulseOnTime(double a, double b) const {
+    double sum = 0;
+    for (double k = std::floor(a / m_.pulsePeriodUs); k * m_.pulsePeriodUs < b; k += 1) {
+      const double on0 = k * m_.pulsePeriodUs, on1 = on0 + m_.pulseOnUs;
+      const double lo = on0 > a ? on0 : a, hi = on1 < b ? on1 : b;
+      if (hi > lo) sum += hi - lo;
+    }
+    return sum;
+  }
+
   uint32_t local(double t) const { return (uint32_t)(int64_t)std::floor(offset_ + t * (1.0 + ppm_ * 1e-6)); }
 
   Channel &tx_;

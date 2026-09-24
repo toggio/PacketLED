@@ -119,6 +119,8 @@ bool PacketLED::begin(uint32_t bitRate) {
   noiseLsb_ = (uint16_t)(dev / 15);
   setDark(d[7]);
   prevLight_ = false;
+  resumed_ = false;
+  lastListenUs_ = phy_.micros();
   txLen_ = 0;
   txOverflow_ = false;
   return true;
@@ -251,6 +253,10 @@ void PacketLED::transmit(uint8_t type, uint8_t session, uint8_t seq, const uint8
   buf[kHeaderLen + len] = (uint8_t)fcs;
   buf[kHeaderLen + len + 1] = (uint8_t)(fcs >> 8);
 
+  // Leave the other side time to get back to listening after its last frame.
+  const uint32_t since = phy_.micros() - lastRxEndUs_;
+  if (since < kTxGapMs * 1000UL) phy_.delayMs(kTxGapMs - since / 1000);
+
   const uint32_t t0 = phy_.micros() + 100;
   waitUntil(t0);
   phy_.ledOn();
@@ -276,6 +282,7 @@ void PacketLED::transmit(uint8_t type, uint8_t session, uint8_t seq, const uint8
   waitUntil(t);
   phy_.ledOff();
   prevLight_ = false;
+  resumed_ = true;
 }
 
 // ---------------------------------------------------------------- receive
@@ -300,6 +307,13 @@ int PacketLED::peek() { return rxPos_ < rxLen_ ? rxBuf_[rxPos_] : -1; }
 PacketLED::Event PacketLED::listenOnce() {
   uint32_t st = 0;
   const uint16_t v = phy_.integrate(listenUs_, st);
+  // After a pause in listening (the board was sending, or busy between two
+  // calls) a light pulse may have started unseen, and its length is unknown.
+  const bool away = resumed_ || (uint32_t)(st - lastListenUs_) > listenUs_ + kListenGapUs;
+  resumed_ = false;
+  lastListenUs_ = st;
+  // Nor is the end of a pulse known if listening stopped while it was on.
+  if (away) prevLight_ = false;
   // The end of the SYNC is detected halfway between dark and SYNC level, so that
   // ambient light and mains flicker do not delay it.
   uint16_t thr = lightThrLsb_;
@@ -310,6 +324,7 @@ PacketLED::Event PacketLED::listenOnce() {
   if (v > thr) {
     if (!prevLight_) {
       riseStart_ = st;
+      riseSeen_ = !away;
       windowChosen_ = false;
       syncLsb_ = v;
     }
@@ -329,9 +344,16 @@ PacketLED::Event PacketLED::listenOnce() {
   if (prevLight_) {
     prevLight_ = false;
     const uint32_t width = st - riseStart_;
-    if (width >= kSyncMinUs && width <= kSyncMaxUs && windowChosen_) {
+    // A SYNC seen from its start must be long enough to rule out mains hum; one
+    // that was already on when listening resumed has only been seen in part.
+    const uint32_t minWidth = riseSeen_ ? kSyncMinUs : kSyncMinUnseenUs;
+    if (width >= minWidth && width <= kSyncMaxUs && windowChosen_) {
       ++stats_.syncs;
       const Event ev = receiveFrame(lastLitStart_, st, width);
+      // Receiving is listening too: only a transmission (the ACK sent from
+      // receiveFrame) counts as a pause.
+      lastRxEndUs_ = phy_.micros();
+      lastListenUs_ = lastRxEndUs_;
       if (frameHandler_) frameHandler_(frame_);
       return ev;
     }

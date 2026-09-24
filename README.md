@@ -10,13 +10,12 @@ With clear, narrow-beam LEDs the link has been tested up to 2.5 m at 1024 bit/s.
 
 ## Features
 
-- **Two-way link with one part per side.** The same LED sends and receives, so a device can talk through the status LED it already has.
-- **Line of sight.** The link works from a few centimeters with ordinary LEDs to a couple of meters with clear, narrow-beam ones, with the LEDs facing each other. To pick up the data you have to be right in the light path. There are no radio emissions, no pairing, no network stack and nothing listening from across the room, which keeps the attack surface small. The data is not encrypted: if it is secret, encrypt it before sending.
-- **Reliable delivery.** Every packet is checked, acknowledged and retransmitted if needed, and duplicates are discarded. `endPacket()` tells you whether the other side got it.
-- **No wires between the boards.** The two devices share only light: no common ground, no connectors, full electrical isolation.
-- **No radio at all.** Useful where RF is unwanted or not allowed, and unaffected by radio interference.
-- **Copes with room light.** Ambient light, lamps being switched on and off and mains flicker are handled automatically.
-- **Familiar API.** If you have used the Arduino LoRa library, or `Serial`, you already know how to use it.
+- The same LED sends and receives, so a device can talk through the status LED it already has.
+- Line of sight only, from a few centimeters with ordinary LEDs to a couple of meters with clear, narrow-beam ones. Nothing is radiated and there is nothing to pair, so there is little to attack. The data itself is not encrypted; encrypt it first if it is secret.
+- Packets are checked, acknowledged and retransmitted when needed, and duplicates are dropped. `endPacket()` tells you whether the other side got it.
+- The two boards share only light, so they are electrically isolated, and it works where radio is unwanted or not allowed.
+- Room light, lamps being switched on and off and mains flicker are handled automatically.
+- The API follows the Arduino LoRa library, and `PacketLED` is a `Stream`.
 
 Some things it is good for:
 

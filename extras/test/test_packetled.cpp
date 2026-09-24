@@ -155,6 +155,9 @@ int main() {
       {"3 cm, 50 Hz flicker", 1.1, 0, 0.2, true, {}},
       {"5 cm, 50 Hz flicker", 0.5, 0, 0.2, true, {}},
       {"5 cm, extreme flicker", 0.5, 0, 0.6, false, {}},
+      // clear narrow-angle LED: strong signal, but it also picks up much more hum
+      {"sensitive LED, strong hum", 15.0, 0, 0.6, true, {}},
+      {"sensitive LED, room light + hum", 15.0, 1.0, 0.6, true, {}},
   };
   printf("== Delivery (payload 1-64 bytes: 0x00/0xFF/0x55AA/random), independent clocks ==\n");
   for (uint32_t rate : {1024u, 512u, 256u}) {

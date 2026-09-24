@@ -114,6 +114,9 @@ bool PacketLED::begin(uint32_t bitRate) {
   nextSeq_ = (uint8_t)(phy_.random32() ^ seed >> 13);
 
   sortSmall(d, 15);
+  uint32_t dev = 0;
+  for (uint8_t i = 0; i < 15; ++i) dev += d[i] > d[7] ? d[i] - d[7] : d[7] - d[i];
+  noiseLsb_ = (uint16_t)(dev / 15);
   setDark(d[7]);
   prevLight_ = false;
   txLen_ = 0;
@@ -133,9 +136,15 @@ void PacketLED::setLed(bool on) {
   else phy_.ledOff();
 }
 
+// The SYNC threshold sits above the dark level by the largest of a fixed
+// minimum, a quarter of the dark level and a multiple of the resting noise, so
+// that mains hum picked up by a sensitive LED is not taken for light.
 void PacketLED::setDark(uint16_t dark) {
   darkLsb_ = dark;
-  lightThrLsb_ = dark + (dark / 4 > kMinLightLsb ? dark / 4 : kMinLightLsb);
+  uint32_t margin = kMinLightLsb;
+  if (dark / 4 > margin) margin = dark / 4;
+  if ((uint32_t)noiseLsb_ * kNoiseFactor > margin) margin = (uint32_t)noiseLsb_ * kNoiseFactor;
+  lightThrLsb_ = (uint16_t)(dark + margin > 0xFFFF ? 0xFFFF : dark + margin);
 }
 
 // ---------------------------------------------------------------- timing
@@ -328,7 +337,9 @@ PacketLED::Event PacketLED::listenOnce() {
     }
     if (width >= kSyncMinUs / 2) ++stats_.syncRejected;
   } else {
-    // At rest the dark level follows the ambient light.
+    // At rest the dark level and its noise follow the ambient light.
+    const uint16_t dev = v > darkLsb_ ? v - darkLsb_ : darkLsb_ - v;
+    noiseLsb_ = (uint16_t)((noiseLsb_ * 15u + dev) / 16u);
     setDark((uint16_t)((darkLsb_ * 15u + v) / 16u));
   }
   phy_.idle();

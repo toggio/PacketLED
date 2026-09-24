@@ -38,6 +38,7 @@ lastAttempts	KEYWORD2
 bitRate	KEYWORD2
 maxWindowUs	KEYWORD2
 darkLevel	KEYWORD2
+noiseLevel	KEYWORD2
 measureLight	KEYWORD2
 setLed	KEYWORD2
 resultText	KEYWORD2

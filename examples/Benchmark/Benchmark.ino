@@ -79,8 +79,9 @@ void printStats() {
                 (unsigned long)s.sentFirstTry, (unsigned long)s.retransmissions, (unsigned long)s.sendFailed);
   Serial.printf("Binary test: received=%lu, wrong content=%lu (%lu bytes)\n", (unsigned long)testReceived,
                 (unsigned long)testWrong, (unsigned long)testWrongBytes);
-  Serial.printf("Config: %lu bit/s, session=0x%02X, max window=%luus, dark level=%u\n",
-                (unsigned long)led.bitRate(), led.session(), (unsigned long)led.maxWindowUs(), led.darkLevel());
+  Serial.printf("Config: %lu bit/s, session=0x%02X, max window=%luus, dark level=%u, noise=%u\n",
+                (unsigned long)led.bitRate(), led.session(), (unsigned long)led.maxWindowUs(), led.darkLevel(),
+                led.noiseLevel());
 }
 
 // True if the user typed something (line endings and spaces are ignored).

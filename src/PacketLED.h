@@ -69,6 +69,7 @@ constexpr uint32_t kGuardUs = 3000;
 constexpr uint32_t kListenWindowUs = 600;      // minimum; longer at low rates (see begin())
 constexpr uint32_t kMaxListenWindowUs = 1200;
 constexpr uint16_t kMinLightLsb = 60;          // SYNC detection: minimum rise over the dark level
+constexpr uint8_t kNoiseFactor = 3;            // ... and at least this many times the resting noise
 constexpr uint32_t kAmbientAdoptUs = 100000;   // steady light longer than this becomes the new dark level
 
 constexpr uint16_t kTargetLevelLsb = 2000;     // integration target: far from zero and from saturation
@@ -198,6 +199,7 @@ class PacketLED PACKETLED_BASE {
   uint32_t bitRate() const { return bitRate_; }
   uint32_t maxWindowUs() const { return maxWindowUs_; }
   uint16_t darkLevel() const { return darkLsb_; }
+  uint16_t noiseLevel() const { return noiseLsb_; }
 
   /** Single raw reading with the given integration time (0-4095). */
   uint16_t measureLight(uint32_t windowUs);
@@ -229,6 +231,7 @@ class PacketLED PACKETLED_BASE {
   uint32_t listenUs_ = lx25::kListenWindowUs;
 
   uint16_t darkLsb_ = 0;
+  uint16_t noiseLsb_ = 0;
   uint16_t lightThrLsb_ = lx25::kMinLightLsb;
   uint16_t syncLsb_ = 0;
   bool prevLight_ = false;

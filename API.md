@@ -123,6 +123,7 @@ A short description of a `Result`.
 | `uint32_t bitRate()` | Bit rate set by `begin()` |
 | `uint32_t maxWindowUs()` | Longest integration time at this bit rate |
 | `uint16_t darkLevel()` | Current dark level while listening |
+| `uint16_t noiseLevel()` | Average deviation of the dark readings, mostly mains hum. The SYNC threshold is kept above it |
 | `uint16_t measureLight(uint32_t windowUs)` | One raw reading (0-4095) with the given integration time |
 | `void setLed(bool on)` | Turns the LED on or off, for testing. An LED left on is seen by the other board as ambient light |
 

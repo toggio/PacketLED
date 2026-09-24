@@ -1,5 +1,5 @@
 /*
- * PacketLED v. 1.0.1 - 24/09/2026
+ * PacketLED v. 1.0.2 - 24/09/2026
  *
  * Packet communication over bidirectional LEDs, inspired by Packet Radio.
  *
@@ -39,7 +39,7 @@
 #define PACKETLED_OVERRIDE
 #endif
 
-#define PACKETLED_VERSION "1.0.1"
+#define PACKETLED_VERSION "1.0.2"
 
 /*
  * LX.25 frame (Manchester bits, MSB first: 0 = light then dark, 1 = dark then light):

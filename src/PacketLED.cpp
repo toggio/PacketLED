@@ -1,5 +1,5 @@
 /*
- * PacketLED v. 1.0.1 - 24/09/2026
+ * PacketLED v. 1.0.2 - 24/09/2026
  *
  * Packet communication over bidirectional LEDs, inspired by Packet Radio.
  *
@@ -253,7 +253,7 @@ void PacketLED::transmit(uint8_t type, uint8_t session, uint8_t seq, const uint8
   buf[kHeaderLen + len] = (uint8_t)fcs;
   buf[kHeaderLen + len + 1] = (uint8_t)(fcs >> 8);
 
-  // Leave the other side time to get back to listening after its last frame.
+  // Give the other side time to get back to listening after its last frame.
   const uint32_t since = phy_.micros() - lastRxEndUs_;
   if (since < kTxGapMs * 1000UL) phy_.delayMs(kTxGapMs - since / 1000);
 
@@ -312,7 +312,7 @@ PacketLED::Event PacketLED::listenOnce() {
   const bool away = resumed_ || (uint32_t)(st - lastListenUs_) > listenUs_ + kListenGapUs;
   resumed_ = false;
   lastListenUs_ = st;
-  // Nor is the end of a pulse known if listening stopped while it was on.
+  // If listening stopped while a pulse was on, its end is unknown too: start over.
   if (away) prevLight_ = false;
   // The end of the SYNC is detected halfway between dark and SYNC level, so that
   // ambient light and mains flicker do not delay it.
@@ -350,8 +350,8 @@ PacketLED::Event PacketLED::listenOnce() {
     if (width >= minWidth && width <= kSyncMaxUs && windowChosen_) {
       ++stats_.syncs;
       const Event ev = receiveFrame(lastLitStart_, st, width);
-      // Receiving is listening too: only a transmission (the ACK sent from
-      // receiveFrame) counts as a pause.
+      // Receiving a frame is not a pause in listening. Only a transmission is,
+      // and the ACK sent from receiveFrame() has already marked it.
       lastRxEndUs_ = phy_.micros();
       lastListenUs_ = lastRxEndUs_;
       if (frameHandler_) frameHandler_(frame_);

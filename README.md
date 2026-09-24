@@ -118,7 +118,7 @@ A few things work differently from a radio library.
 
 The range depends mostly on the LEDs:
 
-- **5 mm clear red LEDs, 20° viewing angle, 40,000 mcd, 100 Ω:** tested up to 2.5 m at 1024 bit/s, with every packet delivered. At 90 cm, 100 packets of 64 bytes went through in each direction, all at the first attempt, with 725 bit/s of payload throughput.
+- **5 mm clear red LEDs, 20° viewing angle, 40,000 mcd, 100 Ω:** tested up to 2.5 m at 1024 bit/s, with every packet delivered. At 90 cm, 100 packets of 64 bytes went through in each direction, all at the first attempt, with about 715 bit/s of payload throughput.
 - **Generic 3 mm diffused red LEDs, 470 Ω:** about 3 cm at 1024 bit/s, 5 cm at 512 and 8 cm at 256. These figures come partly from the bench and partly from the simulator in `extras/test`, which is calibrated on hardware measurements. With 100 Ω instead of 470 Ω, the same LEDs reach 7 to 8 cm at 1024 bit/s.
 
 Clear LEDs with a narrow viewing angle concentrate the light in a beam: they are the single biggest improvement. A lower resistor helps too, and so does a short black tube around each LED, which keeps stray light out. A narrow beam also has to be aimed: the two LEDs must point at each other.

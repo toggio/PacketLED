@@ -1,6 +1,6 @@
 # PacketLED API
 
-Reference for PacketLED 1.0.1. See the [README](README.md) for wiring and an overview.
+Reference for PacketLED 1.0.2. See the [README](README.md) for wiring and an overview.
 
 ## Setup
 
@@ -46,6 +46,8 @@ Sends the packet.
 - `confirmed = false`: sends once and returns `true`. The receiver still acknowledges it, but the acknowledgement is ignored.
 
 Returns `false` if the packet was longer than 64 bytes. The call blocks until the outcome is known.
+
+If a frame has just been received, it first waits until 10 ms have passed since its end, so that the other board is listening again.
 
 ```cpp
 led.beginPacket();

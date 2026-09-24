@@ -63,7 +63,7 @@ constexpr uint32_t kMinBitRate = 256;
 constexpr uint32_t kMaxBitRate = 1024;
 
 constexpr uint32_t kSyncUs = 20000;
-constexpr uint32_t kSyncMinUs = 15000;         // above a 50 Hz half-wave (10 ms), with margin
+constexpr uint32_t kSyncMinUs = 17000;         // well above a 50 Hz half-wave (10 ms)
 constexpr uint32_t kSyncMaxUs = 35000;
 constexpr uint32_t kGuardUs = 3000;
 constexpr uint32_t kListenWindowUs = 600;      // minimum; longer at low rates (see begin())

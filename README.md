@@ -9,7 +9,7 @@ PacketLED lets two boards exchange data through a pair of ordinary LEDs placed f
 ## Features
 
 - **Two-way link with one part per side.** The same LED sends and receives, so a device can talk through the status LED it already has.
-- **Short range by design.** The link works over a few centimetres, with the LEDs facing each other. To pick up the data you have to be right in the light path. There are no radio emissions, no pairing, no network stack and nothing listening from across the room, which keeps the attack surface small. The data is not encrypted: if it is secret, encrypt it before sending.
+- **Short range by design.** The link works over a few centimeters, with the LEDs facing each other. To pick up the data you have to be right in the light path. There are no radio emissions, no pairing, no network stack and nothing listening from across the room, which keeps the attack surface small. The data is not encrypted: if it is secret, encrypt it before sending.
 - **Reliable delivery.** Every packet is checked, acknowledged and retransmitted if needed, and duplicates are discarded. `endPacket()` tells you whether the other side got it.
 - **No wires between the boards.** The two devices share only light: no common ground, no connectors, full electrical isolation.
 - **No radio at all.** Useful where RF is unwanted or not allowed, and unaffected by radio interference.
@@ -25,7 +25,7 @@ Some things it is good for:
 
 ## Protocol
 
-Data travels in small packets, as in amateur Packet Radio. The link protocol, **LX.25**, owes its name to AX.25:
+Data travels in small packets, as in amateur Packet Radio. The link protocol is called **LX.25**, after AX.25, and provides:
 
 - packets of 0 to 64 bytes, text or binary;
 - a CRC-16/X.25 checksum on every frame (the same FCS as AX.25);
@@ -61,7 +61,9 @@ The resistor plays no part in receiving. The ranges below were found with 470 Ω
 
 ## Installation
 
-Download the repository as a ZIP file and add it with *Sketch > Include Library > Add .ZIP Library* in the Arduino IDE, or copy the folder into your `Arduino/libraries` directory.
+In the Arduino IDE, open the Library Manager, search for **PacketLED** and click *Install*.
+
+You can also download the repository as a ZIP file and add it with *Sketch > Include Library > Add .ZIP Library*.
 
 ## Usage
 
@@ -121,11 +123,11 @@ Ways to get more range:
 
 ## How it works
 
-To receive, the LED is reverse-biased and then its anode is left floating. Light falling on the junction produces a tiny current that charges it. After a fixed integration time the ADC reads the voltage, which is proportional to the light received. This is the technique described by Dietz, Yerazunis and Leigh at MERL (see [Credits](#credits)). PacketLED reads the voltage with the ADC instead of timing a digital input, which is far more sensitive at a distance.
+To receive, the LED is reverse-biased and then its anode is left floating. Light falling on the junction produces a tiny current that charges it. After a fixed integration time the ADC reads the voltage, which is proportional to the light received. This is the technique described by Dietz, Yerazunis and Leigh at MERL (see [Credits](#credits)). Where the original work timed a digital input, PacketLED reads the voltage with the ADC, which is far more sensitive at a distance.
 
 An LX.25 frame looks like this (see [LX25.md](LX25.md) for the details):
 
-| Field | Length | |
+| Field | Length | Purpose |
 |---|---|---|
 | SYNC | 20 ms | steady light; the receiver picks its integration time from it |
 | GUARD | 3 ms | dark |
@@ -143,7 +145,7 @@ Each board picks a random session number when it starts. Together with the seque
 
 - **BasicSend** and **BasicReceive**: one board sends text, raw bytes, a struct and an unconfirmed packet, and the other prints what it gets.
 - **Chat**: a two-way text chat. Upload it to both boards and type in the Serial Monitor.
-- **SyncBlink**: the two boards blink a Morse message on their PacketLED LEDs, in step. A short packet marks a common starting point; no clock sync code is needed.
+- **SyncBlink**: the two boards blink a Morse message in step, on the same LEDs they use to talk. A short packet marks a common starting point; no clock sync code is needed.
 - **Benchmark**: throughput and error tests, per-frame diagnostics, statistics and raw light readings. Upload it to both boards and type commands in the Serial Monitor.
 
 ## Tests

@@ -36,7 +36,7 @@ Starts a new packet. Always returns 1.
 ### `size_t write(uint8_t b)`
 ### `size_t write(const uint8_t *buffer, size_t size)`
 
-Add bytes to the packet. `print()` and `println()` work too. A packet holds up to 64 bytes (`lx25::kMaxPayload`). Bytes beyond that are not added: `write()` returns 0 and `endPacket()` fails.
+Adds bytes to the packet. `print()` and `println()` work too. A packet holds up to 64 bytes (`lx25::kMaxPayload`). Bytes beyond that are not added: `write()` returns 0 and `endPacket()` fails.
 
 ### `bool endPacket(bool confirmed = true)`
 
@@ -82,7 +82,7 @@ A packet received while `endPacket()` was waiting for its own acknowledgement is
 
 ### `int available()`, `int read()`, `int peek()`
 
-Read the received packet byte by byte, as with `Serial`. `readBytes()` also works.
+Reads the received packet byte by byte, as with `Serial`. `readBytes()` also works.
 
 ```cpp
 int size = led.parsePacket();

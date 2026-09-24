@@ -1,7 +1,7 @@
 /*
  * PacketLED - SyncBlink
  *
- * Both boards blink a Morse message on their PacketLED LEDs, in step.
+ * Both boards blink a Morse message in step, on the same LEDs they use to talk.
  *
  * One board, the leader, sends a short "GO" packet. Both boards leave the
  * library calls at the same moment: the leader when endPacket() has read the

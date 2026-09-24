@@ -1,6 +1,6 @@
 # PacketLED API
 
-Reference for PacketLED 1.0.0. See the [README](README.md) for wiring and an overview.
+Reference for PacketLED 1.0.1. See the [README](README.md) for wiring and an overview.
 
 ## Setup
 

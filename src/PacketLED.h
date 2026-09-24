@@ -1,5 +1,5 @@
 /*
- * PacketLED v. 1.0.0 - 24/09/2026
+ * PacketLED v. 1.0.1 - 24/09/2026
  *
  * Packet communication over bidirectional LEDs, inspired by Packet Radio.
  *
@@ -39,7 +39,7 @@
 #define PACKETLED_OVERRIDE
 #endif
 
-#define PACKETLED_VERSION "1.0.0"
+#define PACKETLED_VERSION "1.0.1"
 
 /*
  * LX.25 frame (Manchester bits, MSB first: 0 = light then dark, 1 = dark then light):
@@ -63,7 +63,7 @@ constexpr uint32_t kMinBitRate = 256;
 constexpr uint32_t kMaxBitRate = 1024;
 
 constexpr uint32_t kSyncUs = 20000;
-constexpr uint32_t kSyncMinUs = 12000;
+constexpr uint32_t kSyncMinUs = 15000;         // above a 50 Hz half-wave (10 ms), with margin
 constexpr uint32_t kSyncMaxUs = 35000;
 constexpr uint32_t kGuardUs = 3000;
 constexpr uint32_t kListenWindowUs = 600;      // minimum; longer at low rates (see begin())

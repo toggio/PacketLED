@@ -168,7 +168,7 @@ int main() {
       const int n = 100;
       int ok = 0, acks = 0, wrong = 0;
       int32_t minMargin = INT32_MAX;
-      uint32_t window = 0, level = 0xFFFF;
+      uint32_t window = 0, level = 0xFFFF, minSync = UINT32_MAX;
       std::map<std::string, int> fails;
       for (int i = 0; i < n; ++i) {
         uint8_t buf[lx25::kMaxPayload], len;
@@ -179,6 +179,7 @@ int main() {
         else ++fails[PacketLED::resultText(t.result)];
         if (t.ackOk) ++acks;
         if (t.contentOk) {
+          if (t.info.syncWidthUs < minSync) minSync = t.info.syncWidthUs;
           if (t.info.minMarginLsb < minMargin) minMargin = t.info.minMarginLsb;
           if (t.info.levelLsb < level) level = t.info.levelLsb;
           window = t.info.windowUs;
@@ -186,9 +187,9 @@ int main() {
       }
       const bool expected = expectedToWork(c, rate);
       printf("%4u bit/s %-26s %s delivered %3d/%d, ACK %3d/%d, wrong %d, window %4u us, min level %4u, "
-             "min margin %4d",
+             "min margin %4d, min SYNC %5u us",
              rate, c.name, expected ? "*" : " ", ok, n, acks, n, wrong, window, level == 0xFFFF ? 0 : level,
-             minMargin == INT32_MAX ? -1 : minMargin);
+             minMargin == INT32_MAX ? -1 : minMargin, minSync == UINT32_MAX ? 0 : minSync);
       for (auto &f : fails) printf(" | %s: %d", f.first.c_str(), f.second);
       printf("\n");
       if (wrong) ++failures;
@@ -215,6 +216,23 @@ int main() {
     for (auto &f : fails) printf(" | %s: %d", f.first.c_str(), f.second);
     printf("\n");
     if (wrong || delivered) ++failures;
+  }
+
+  printf("\n== Idle listening with mains hum (no transmitter, 5 s): false SYNCs ==\n");
+  for (uint32_t rate : {1024u, 256u}) {
+    for (double hum : {0.2, 0.6, 1.0, 2.0}) {
+      Channel chA, chB;
+      SensorModel m;
+      m.hum = hum;
+      SimPhy pb(chB, chA, m, 99);
+      PacketLED b(pb);
+      b.begin(rate);
+      const double end = pb.trueNow() + 5e6;
+      while (pb.trueNow() < end) b.parsePacket();
+      printf("%4u bit/s, hum %.1f: false SYNCs %lu, rejected pulses %lu\n", rate, hum,
+             (unsigned long)b.stats().syncs, (unsigned long)b.stats().syncRejected);
+      if (b.stats().syncs) ++failures;
+    }
   }
 
   printf("\n== API ==\n");

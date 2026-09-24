@@ -47,6 +47,8 @@ cathode pin ──────────── LED cathode
 
 The anode pin must be an ADC1 input: ADC2 cannot be used while WiFi is on. The cathode pin can be any GPIO. Point the two LEDs at each other.
 
+Keep the wires to the LED short. While receiving, the anode is left floating, and long wires pick up mains hum.
+
 ### Choosing the resistor
 
 The resistor sets the LED current while transmitting. More current means more light and more range. Aim for 5 to 20 mA, within the LED rating and the pin limit (on the ESP32, 20 mA per pin is a sensible maximum):

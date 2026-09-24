@@ -19,7 +19,7 @@ The physical layer for ESP32 boards. `anodePin` goes to the LED anode through th
 
 Initializes the pins and the ADC and measures the dark level. Call it while the LED of the other board is off.
 
-`bitRate` must be the same on both boards. Use 1024 (about 3 cm), 512 (about 5 cm) or 256 (about 8 cm). Any value in between works too.
+`bitRate` must be the same on both boards. Use 1024, 512 or 256: lower rates reach further. With generic 3 mm diffused LEDs that means about 3, 5 and 8 cm; clear narrow-beam LEDs reach much further (see the README). Any value in between works too.
 
 Returns `false` if the bit rate is out of range or too fast for the board; the previous settings are then kept. It can be called again at any time to change the bit rate.
 

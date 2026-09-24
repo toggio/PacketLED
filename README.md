@@ -9,7 +9,7 @@ PacketLED lets two boards exchange data through a pair of ordinary LEDs placed f
 ## Features
 
 - **Two-way link with one part per side.** The same LED sends and receives, so a device can talk through the status LED it already has.
-- **Short range by design.** The link works over a few centimeters, with the LEDs facing each other. To pick up the data you have to be right in the light path. There are no radio emissions, no pairing, no network stack and nothing listening from across the room, which keeps the attack surface small. The data is not encrypted: if it is secret, encrypt it before sending.
+- **Line of sight.** The link works from a few centimeters with ordinary LEDs to about a meter with clear, narrow-beam ones, with the LEDs facing each other. To pick up the data you have to be right in the light path. There are no radio emissions, no pairing, no network stack and nothing listening from across the room, which keeps the attack surface small. The data is not encrypted: if it is secret, encrypt it before sending.
 - **Reliable delivery.** Every packet is checked, acknowledged and retransmitted if needed, and duplicates are discarded. `endPacket()` tells you whether the other side got it.
 - **No wires between the boards.** The two devices share only light: no common ground, no connectors, full electrical isolation.
 - **No radio at all.** Useful where RF is unwanted or not allowed, and unaffected by radio interference.
@@ -59,7 +59,7 @@ R = (3.3 V - Vf) / I
 
 `Vf` is the LED forward voltage, about 1.8-2.1 V for red. For a red LED this gives roughly 270 Ω at 5 mA and 68 Ω at 20 mA. Blue and white LEDs have a Vf close to 3 V, which leaves very little headroom at 3.3 V.
 
-The resistor plays no part in receiving. The ranges below were found with 470 Ω (about 3 mA), so a lower value will do better.
+The resistor plays no part in receiving. More current means more range: see the figures below for 470 Ω (about 3 mA) and 100 Ω (about 13 mA).
 
 ## Installation
 
@@ -109,19 +109,18 @@ A few things work differently from a radio library.
 
 ## Speed and range
 
-| Bit rate | Range | 16 bytes | 64 bytes | ACK |
-|---|---|---|---|---|
-| `begin()`, 1024 bit/s | about 3 cm | 218 ms | 593 ms | 93 ms |
-| `begin(512)` | about 5 cm | 414 ms | 1163 ms | 164 ms |
-| `begin(256)` | about 8 cm | 804 ms | 2304 ms | 304 ms |
+| Bit rate | 16 bytes | 64 bytes | ACK |
+|---|---|---|---|
+| `begin()`, 1024 bit/s | 218 ms | 593 ms | 93 ms |
+| `begin(512)` | 414 ms | 1163 ms | 164 ms |
+| `begin(256)` | 804 ms | 2304 ms | 304 ms |
 
-The ranges are indicative. They were found with generic 3 mm red LEDs at 470 Ω, partly on hardware and partly with the simulator in `extras/test`, which is calibrated on hardware measurements. On the bench, at 1 cm and full speed, 100 binary packets went through in each direction, all at the first attempt.
+The range depends mostly on the LEDs:
 
-Ways to get more range:
+- **5 mm clear red LEDs, 30° viewing angle, 100 Ω:** at 90 cm and 1024 bit/s, 100 packets of 64 bytes went through in each direction, all at the first attempt, with 725 bit/s of payload throughput. The signal was still about ten times the noise, so this is not the limit.
+- **Generic 3 mm diffused red LEDs, 470 Ω:** about 3 cm at 1024 bit/s, 5 cm at 512 and 8 cm at 256. These figures come partly from the bench and partly from the simulator in `extras/test`, which is calibrated on hardware measurements.
 
-- a lower resistor (see above);
-- high-brightness, clear, narrow-angle LEDs;
-- a short black tube around each LED to keep stray light out.
+Clear LEDs with a narrow viewing angle concentrate the light in a beam: they are the single biggest improvement. A lower resistor helps too, and so does a short black tube around each LED, which keeps stray light out. A narrow beam also has to be aimed: the two LEDs must point at each other.
 
 ## How it works
 

@@ -9,7 +9,7 @@ PacketLED lets two boards exchange data through a pair of ordinary LEDs placed f
 ## Features
 
 - **Two-way link with one part per side.** The same LED sends and receives, so a device can talk through the status LED it already has.
-- **Line of sight.** The link works from a few centimeters with ordinary LEDs to about a meter with clear, narrow-beam ones, with the LEDs facing each other. To pick up the data you have to be right in the light path. There are no radio emissions, no pairing, no network stack and nothing listening from across the room, which keeps the attack surface small. The data is not encrypted: if it is secret, encrypt it before sending.
+- **Line of sight.** The link works from a few centimeters with ordinary LEDs to a couple of meters with clear, narrow-beam ones, with the LEDs facing each other. To pick up the data you have to be right in the light path. There are no radio emissions, no pairing, no network stack and nothing listening from across the room, which keeps the attack surface small. The data is not encrypted: if it is secret, encrypt it before sending.
 - **Reliable delivery.** Every packet is checked, acknowledged and retransmitted if needed, and duplicates are discarded. `endPacket()` tells you whether the other side got it.
 - **No wires between the boards.** The two devices share only light: no common ground, no connectors, full electrical isolation.
 - **No radio at all.** Useful where RF is unwanted or not allowed, and unaffected by radio interference.
@@ -35,7 +35,7 @@ The speed is 256, 512 or 1024 bit/s, chosen in `begin()`. The full specification
 
 ## Requirements
 
-- An ESP32 board. Tested on ESP32 and ESP32-C3 with the Arduino-ESP32 core 3.0.7.
+- An ESP32 board. Tested on ESP32 and ESP32-C3 with the Arduino-ESP32 cores 3.0.7 and 3.3.12.
 - One LED and one resistor per board. Use the same kind of LED on both sides; standard red LEDs work well.
 
 ## Wiring
@@ -117,8 +117,8 @@ A few things work differently from a radio library.
 
 The range depends mostly on the LEDs:
 
-- **5 mm clear red LEDs, 30° viewing angle, 100 Ω:** at 90 cm and 1024 bit/s, 100 packets of 64 bytes went through in each direction, all at the first attempt, with 725 bit/s of payload throughput. The signal was still about ten times the noise, so this is not the limit.
-- **Generic 3 mm diffused red LEDs, 470 Ω:** about 3 cm at 1024 bit/s, 5 cm at 512 and 8 cm at 256. These figures come partly from the bench and partly from the simulator in `extras/test`, which is calibrated on hardware measurements.
+- **5 mm clear red LEDs, 20° viewing angle, 40,000 mcd, 100 Ω:** tested up to 2.5 m at 1024 bit/s, with every packet delivered. At 90 cm, 100 packets of 64 bytes went through in each direction, all at the first attempt, with 725 bit/s of payload throughput.
+- **Generic 3 mm diffused red LEDs, 470 Ω:** about 3 cm at 1024 bit/s, 5 cm at 512 and 8 cm at 256. These figures come partly from the bench and partly from the simulator in `extras/test`, which is calibrated on hardware measurements. With 100 Ω instead of 470 Ω, the same LEDs reach 7 to 8 cm at 1024 bit/s.
 
 Clear LEDs with a narrow viewing angle concentrate the light in a beam: they are the single biggest improvement. A lower resistor helps too, and so does a short black tube around each LED, which keeps stray light out. A narrow beam also has to be aimed: the two LEDs must point at each other.
 

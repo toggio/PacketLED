@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- New examples: LightMeter, to see how much light arrives and choose LEDs,
+  resistor and distance, and BeamBreak, a light barrier with synchronous
+  detection.
+
 ## 1.0.2
 
 - Fixed a regression in 1.0.1: when packets were sent back to back, about

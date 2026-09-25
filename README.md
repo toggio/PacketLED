@@ -2,11 +2,7 @@
 
 Packet communication over bidirectional LEDs, inspired by Packet Radio.
 
-
-
 https://github.com/user-attachments/assets/cef9af1a-1dc0-462e-ac9d-c673e2b63bbb
-
-
 
 ## Overview
 
@@ -154,6 +150,8 @@ Each board picks a random session number when it starts. Together with the seque
 - **BasicSend** and **BasicReceive**: one board sends text, raw bytes, a struct and an unconfirmed packet, and the other prints what it gets.
 - **Chat**: a two-way text chat. Upload it to both boards and type in the Serial Monitor.
 - **SyncBlink**: the two boards blink a Morse message in step, on the same LEDs they use to talk. A short packet marks a common starting point; no clock sync code is needed.
+- **LightMeter**: shows how much light one board receives from the other, with the integration times the library uses. Handy for choosing LEDs, resistor and distance before sending any data.
+- **BeamBreak**: a light barrier with no data involved. One LED blinks at 85 Hz and the other looks for that frequency only, so ambient light and mains hum are ignored.
 - **Benchmark**: throughput and error tests, per-frame diagnostics, statistics and raw light readings. Upload it to both boards and type commands in the Serial Monitor.
 
 ## Tests
@@ -178,6 +176,10 @@ On Windows, `extras/test/run_tests.ps1` builds and runs it in one step.
 - Point to point: there are no addresses.
 - Timing is done by busy waiting, so heavy interrupt load can disturb it. `FrameInfo::lateMaxUs` shows how late the measurements start. The library has not been tested with WiFi active.
 - At 256 bit/s a 64-byte frame keeps the CPU busy for over 2 seconds.
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for what changed in each version.
 
 ## Credits
 

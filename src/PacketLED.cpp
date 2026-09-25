@@ -303,7 +303,8 @@ int PacketLED::read() { return rxPos_ < rxLen_ ? rxBuf_[rxPos_++] : -1; }
 int PacketLED::peek() { return rxPos_ < rxLen_ ? rxBuf_[rxPos_] : -1; }
 
 // One listening measurement. A SYNC is a run of "light" readings lasting
-// kSyncMinUs..kSyncMaxUs; the frame is received from the first dark reading.
+// kSyncMinUs..kSyncMaxUs, or at least kSyncMinUnseenUs if it was already on when
+// listening resumed. The frame is received from the first dark reading.
 PacketLED::Event PacketLED::listenOnce() {
   uint32_t st = 0;
   const uint16_t v = phy_.integrate(listenUs_, st);

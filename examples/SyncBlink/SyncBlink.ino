@@ -14,7 +14,8 @@
  *
  * Wiring: LED_ANODE_PIN -> resistor -> LED anode, LED cathode -> LED_CATHODE_PIN
  * (see the README for the resistor value).
- * LED_ANODE_PIN must be an ADC1 pin. Place the two LEDs face to face.
+ * LED_ANODE_PIN must be an ADC1 pin that also works as an output (32/33 suit
+ * the ESP32, 0/1 the ESP32-C3). Place the two LEDs face to face.
  */
 
 #include <PacketLED.h>

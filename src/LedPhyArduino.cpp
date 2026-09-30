@@ -39,7 +39,8 @@ void ArduinoLedPhy::begin() {
   analogReadResolution(12);
   // 0 dB attenuation (about 0-1 V full scale): the photocurrent only charges the
   // junction by a few hundred mV. Set as the default too, because pinMode()
-  // changes re-attach the pin to the ADC.
+  // changes re-attach the pin to the ADC. This changes the default for every
+  // analog input of the sketch (see the README).
   analogSetAttenuation(ADC_0db);
   analogSetPinAttenuation(anode_, ADC_0db);
   ledOff();

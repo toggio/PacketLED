@@ -8,6 +8,7 @@
 #include <string>
 
 #include "../../src/PacketLED.h"
+#include "sim_duo.h"
 #include "sim_phy.h"
 
 using Result = PacketLED::Result;
@@ -77,10 +78,17 @@ static Trial runTrial(uint32_t bitRate, const SensorModel &m, uint32_t seed, con
   a.write(data, len);
   a.endPacket(false);
   const double aEnd = pa.trueNow();
-  r.frameMs = (aEnd - t0) / 1000.0;
+  // The frame starts with the SYNC, the first time the LED is switched on (the
+  // sender listens before transmitting, and each reading switches the LED off).
+  double sync = aEnd;
+  for (const auto &e : chA.ev)
+    if (e.on) {
+      sync = e.t;
+      break;
+    }
+  r.frameMs = (aEnd - sync) / 1000.0;
   if (corrupt) {
     const double slot = (double)(500000 / bitRate);
-    const double sync = chA.ev.front().t;
     const double dataStart = sync + lx25::kSyncUs + lx25::kGuardUs + (lx25::kPreambleBits + 8) * 2 * slot;
     flipOneBit(chA, rng, slot, dataStart, 8 * (6 + len));
   }
@@ -168,6 +176,61 @@ static int backToBack(uint32_t bitRate, double gain, double appDelayUs, uint32_t
   return firstTry;
 }
 
+struct DuoResult {
+  bool sent[2] = {false, false};
+  int got[2] = {0, 0};
+  bool contentOk[2] = {true, true};
+  double endMs = 0;
+};
+
+// Both nodes send one confirmed 64-byte packet, node 1 starting offsetUs after
+// node 0, and keep listening until they have the other's packet and the other
+// has finished sending. Real send()/parsePacket() on both sides, concurrently.
+static DuoResult duoExchange(uint32_t rate, double gain, double offsetUs, uint32_t seed) {
+  DuoClock clock;
+  Channel ch0, ch1;
+  SensorModel m;
+  m.gain = gain;
+  DuoPhy p0(clock, 0, ch0, ch1, m, seed * 2 + 1), p1(clock, 1, ch1, ch0, m, seed * 2 + 2);
+  p0.setClock(1000, 40);
+  p1.setClock(4294967296.0 - 3e6, -40);  // this clock wraps around during the test
+  PacketLED n0(p0), n1(p1);
+  DuoResult r;
+  bool finished[2] = {false, false};
+  const double limitUs = 40e6;
+
+  auto node = [&](int id, PacketLED &led, DuoPhy &phy, double startUs) {
+    auto collect = [&] {
+      const int n = led.parsePacket();
+      if (n <= 0) return;
+      ++r.got[id];
+      for (int i = 0; i < n; ++i)
+        if (led.read() != ((i * 37 + (1 - id)) & 255)) r.contentOk[id] = false;
+      if (n != lx25::kMaxPayload) r.contentOk[id] = false;
+    };
+    led.begin(rate);
+    while (phy.now() < startUs) collect();
+    uint8_t data[lx25::kMaxPayload];
+    for (int i = 0; i < lx25::kMaxPayload; ++i) data[i] = (uint8_t)(i * 37 + id);
+    r.sent[id] = led.send(data, sizeof(data));
+    finished[id] = true;
+    while ((r.got[id] == 0 || !finished[1 - id]) && phy.now() < limitUs) collect();
+    const double ms = phy.now() / 1000;
+    if (ms > r.endMs) r.endMs = ms;
+  };
+  clock.run([&] { node(0, n0, p0, 100000); }, [&] { node(1, n1, p1, 100000 + offsetUs); });
+  return r;
+}
+
+static bool duoOk(const DuoResult &r) {
+  return r.sent[0] && r.sent[1] && r.got[0] == 1 && r.got[1] == 1 && r.contentOk[0] && r.contentOk[1];
+}
+
+static void printDuo(const char *label, const DuoResult &r) {
+  printf("%-34s send %d/%d, received %d/%d, content %s, %.1f s %s\n", label, r.sent[0], r.sent[1], r.got[0],
+         r.got[1], r.contentOk[0] && r.contentOk[1] ? "ok" : "WRONG", r.endMs / 1000, duoOk(r) ? "" : "  <-- FAILED");
+}
+
 static void makePayload(std::mt19937 &rng, uint8_t *buf, uint8_t &len) {
   len = (uint8_t)(1 + rng() % lx25::kMaxPayload);
   if (rng() % 4 == 0) len = lx25::kMaxPayload;
@@ -189,8 +252,9 @@ static bool expectedToWork(const Case &c, uint32_t rate) {
   return rate == 512 ? c.gain >= 0.35 : c.gain >= 0.2;
 }
 
-int main() {
+int main(int argc, char **argv) {
   int failures = 0;
+  const bool onlyDuo = argc > 1 && strcmp(argv[1], "duo") == 0;  // quick run of the two-node tests
   Options drift;
   drift.ppm = 100;
   Options lampOn;
@@ -217,6 +281,35 @@ int main() {
       {"sensitive LED, strong hum", 15.0, 0, 0.6, true, {}},
       {"sensitive LED, room light + hum", 15.0, 1.0, 0.6, true, {}},
   };
+  printf("\n== Two nodes sending at the same time (confirmed 64-byte packets) ==\n");
+  for (uint32_t rate : {1024u, 512u, 256u}) {
+    for (uint32_t seed : {1u, 17u, 101u}) {
+      char label[64];
+      snprintf(label, sizeof(label), "%4u bit/s, together, seed %u", rate, seed);
+      const DuoResult r = duoExchange(rate, 4.5, 0, seed);
+      printDuo(label, r);
+      if (!duoOk(r)) ++failures;
+    }
+    for (double offsetMs : {3.0, 30.0, 200.0, 500.0}) {
+      char label[64];
+      snprintf(label, sizeof(label), "%4u bit/s, second %3.0f ms later", rate, offsetMs);
+      const DuoResult r = duoExchange(rate, 4.5, offsetMs * 1000, 7);
+      printDuo(label, r);
+      if (!duoOk(r)) ++failures;
+    }
+  }
+  {
+    int ok = 0;
+    const int n = 40;
+    for (int i = 0; i < n; ++i) ok += duoOk(duoExchange(1024, 4.5, (i % 4) * 1000.0, 200 + i));
+    printf("1024 bit/s, 40 starts 0-3 ms apart   both delivered in %d/%d%s\n", ok, n, ok == n ? "" : "  <-- FAILED");
+    if (ok != n) ++failures;
+  }
+  if (onlyDuo) {
+    printf("\n%s\n", failures ? "*** SOME TESTS FAILED ***" : "ALL TESTS PASSED");
+    return failures ? 1 : 0;
+  }
+
   printf("== Delivery (payload 1-64 bytes: 0x00/0xFF/0x55AA/random), independent clocks ==\n");
   for (uint32_t rate : {1024u, 512u, 256u}) {
     for (const Case &c : cases) {

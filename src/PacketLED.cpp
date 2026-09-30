@@ -119,7 +119,6 @@ bool PacketLED::begin(uint32_t bitRate) {
   noiseLsb_ = (uint16_t)(dev / 15);
   setDark(d[7]);
   prevLight_ = false;
-  resumed_ = false;
   lastListenUs_ = phy_.micros();
   txLen_ = 0;
   txOverflow_ = false;
@@ -213,6 +212,7 @@ bool PacketLED::send(const char *text) { return send((const uint8_t *)text, strl
 bool PacketLED::transmitPacket(bool confirmed) {
   const uint8_t seq = nextSeq_++;
   if (!confirmed) {
+    waitForQuiet();
     transmit(kTypeData, session_, seq, txBuf_, txLen_);
     return true;
   }
@@ -222,6 +222,7 @@ bool PacketLED::transmitPacket(bool confirmed) {
   lastAttempts_ = 0;
   for (uint8_t attempt = 1; attempt <= kMaxRetries; ++attempt) {
     ackMatched_ = false;
+    waitForQuiet();
     transmit(kTypeData, session_, seq, txBuf_, txLen_);
     const uint32_t t0 = phy_.micros();
     while ((uint32_t)(phy_.micros() - t0) < kAckTimeoutMs * 1000UL) {
@@ -234,12 +235,34 @@ bool PacketLED::transmitPacket(bool confirmed) {
         return true;
       }
     }
-    if (attempt < kMaxRetries) phy_.delayMs(20 + phy_.random32() % 60);  // random backoff
+    // Random pause before the retry, listening: after a collision, the side that
+    // starts again first is received by the other, which then retries in turn.
+    if (attempt < kMaxRetries) listenFor((kBackoffMinMs + phy_.random32() % kBackoffSpanMs) * 1000UL);
   }
   waitingAck_ = false;
   stats_.retransmissions += kMaxRetries - 1;
   ++stats_.sendFailed;
   return false;
+}
+
+// Listens until the light has been off for longer than any dark stretch inside
+// a frame, so as not to start over a frame that is already on its way. A frame
+// that arrives meanwhile is received first.
+void PacketLED::waitForQuiet() {
+  const uint32_t darkRun = kGuardUs > 2 * slotUs_ ? kGuardUs : 2 * slotUs_;
+  const uint32_t quiet = darkRun + listenUs_;
+  const uint32_t start = phy_.micros();
+  uint32_t lastLight = start;
+  while ((uint32_t)(phy_.micros() - lastLight) < quiet &&
+         (uint32_t)(phy_.micros() - start) < kMaxQuietWaitMs * 1000UL) {
+    listenOnce();
+    if (prevLight_) lastLight = phy_.micros();
+  }
+}
+
+void PacketLED::listenFor(uint32_t us) {
+  const uint32_t start = phy_.micros();
+  while ((uint32_t)(phy_.micros() - start) < us) listenOnce();
 }
 
 void PacketLED::transmit(uint8_t type, uint8_t session, uint8_t seq, const uint8_t *data, uint8_t len) {
@@ -282,7 +305,9 @@ void PacketLED::transmit(uint8_t type, uint8_t session, uint8_t seq, const uint8
   waitUntil(t);
   phy_.ledOff();
   prevLight_ = false;
-  resumed_ = true;
+  // The other side answers 20 ms after this frame, or sends 10 ms after it at
+  // the earliest: listening that resumes now sees its SYNC from the start.
+  lastListenUs_ = phy_.micros();
 }
 
 // ---------------------------------------------------------------- receive
@@ -308,10 +333,9 @@ int PacketLED::peek() { return rxPos_ < rxLen_ ? rxBuf_[rxPos_] : -1; }
 PacketLED::Event PacketLED::listenOnce() {
   uint32_t st = 0;
   const uint16_t v = phy_.integrate(listenUs_, st);
-  // After a pause in listening (the board was sending, or busy between two
-  // calls) a light pulse may have started unseen, and its length is unknown.
-  const bool away = resumed_ || (uint32_t)(st - lastListenUs_) > listenUs_ + kListenGapUs;
-  resumed_ = false;
+  // After a pause in listening (the program was busy between two calls) a light
+  // pulse may have started unseen, and its length is unknown.
+  const bool away = (uint32_t)(st - lastListenUs_) > listenUs_ + kListenGapUs;
   lastListenUs_ = st;
   // If listening stopped while a pulse was on, its end is unknown too: start over.
   if (away) prevLight_ = false;
@@ -351,8 +375,7 @@ PacketLED::Event PacketLED::listenOnce() {
     if (width >= minWidth && width <= kSyncMaxUs && windowChosen_) {
       ++stats_.syncs;
       const Event ev = receiveFrame(lastLitStart_, st, width);
-      // Receiving a frame is not a pause in listening. Only a transmission is,
-      // and the ACK sent from receiveFrame() has already marked it.
+      // Receiving a frame (and sending its ACK) is not a pause in listening.
       lastRxEndUs_ = phy_.micros();
       lastListenUs_ = lastRxEndUs_;
       if (frameHandler_) frameHandler_(frame_);

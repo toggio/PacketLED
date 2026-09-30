@@ -13,8 +13,8 @@ With clear, narrow-beam LEDs the link has been tested up to 2.5 m at 1024 bit/s.
 ## Features
 
 - The same LED sends and receives, so a device can talk through the status LED it already has.
-- Line of sight only, from a few centimeters with ordinary LEDs to a couple of meters with clear, narrow-beam ones. Nothing is radiated and there is nothing to pair, so there is little to attack. The data itself is not encrypted; encrypt it first if it is secret.
-- Packets are checked, acknowledged and retransmitted when needed, and duplicates are dropped. `endPacket()` tells you whether the other side got it.
+- Line of sight only, from a few centimeters with ordinary LEDs to a couple of meters with clear, narrow-beam ones. There is no radio and nothing to pair, and the light only goes where the LEDs point. There is no encryption or authentication, though: if the data is secret, or a command must only be accepted from a known device, protect it in your application.
+- Packets are checked, acknowledged and retransmitted when needed, and duplicates are dropped. `endPacket()` tells you whether the other side confirmed it.
 - The two boards share only light, so they are electrically isolated, and it works where radio is unwanted or not allowed.
 - Room light, lamps being switched on and off and mains flicker are handled automatically.
 - The API follows the Arduino LoRa library, and `PacketLED` is a `Stream`.
@@ -32,7 +32,8 @@ Data travels in small packets, as in amateur Packet Radio. The link protocol is 
 
 - packets of 0 to 64 bytes, text or binary;
 - a CRC-16/X.25 checksum on every frame (the same FCS as AX.25);
-- acknowledgements, up to 3 retransmissions, and duplicate filtering.
+- acknowledgements, up to 3 attempts per packet, and duplicate filtering;
+- listening before transmitting, and a random pause before each retry, so that two boards sending at the same time sort themselves out.
 
 The speed is 256, 512 or 1024 bit/s, chosen in `begin()`. The full specification, detailed enough to write a compatible implementation, is in [LX25.md](LX25.md).
 
@@ -48,7 +49,7 @@ anode pin (ADC1) ── R ── LED anode
 cathode pin ──────────── LED cathode
 ```
 
-The anode pin must be an ADC1 input: ADC2 cannot be used while WiFi is on. The cathode pin can be any GPIO. Point the two LEDs at each other.
+Both pins must work as outputs, and the anode pin must also be an ADC1 input (ADC2 cannot be used while WiFi is on). On the classic ESP32, GPIO34-39 are inputs only and will not work. The tested pairs are GPIO32/33 on the ESP32 and GPIO0/1 on the ESP32-C3. Point the two LEDs at each other.
 
 Keep the wires to the LED short. While receiving, the anode is left floating, and long wires pick up mains hum.
 
@@ -89,7 +90,7 @@ void loop() {
   // Send, and wait for the other board to acknowledge
   led.beginPacket();
   led.print("Hello");
-  if (!led.endPacket()) Serial.println("not delivered");
+  if (!led.endPacket()) Serial.println("not confirmed");
 
   // Receive
   int size = led.parsePacket();
@@ -106,7 +107,7 @@ A few things work differently from a radio library.
 
 **Calls block.** Sending or receiving a frame takes as long as the frame itself (see the table below).
 
-**`endPacket()` returns `true` only when the packet has been delivered**, that is, acknowledged by the other board. `endPacket(false)` sends once without waiting.
+**`endPacket()` returns `true` when the other board has acknowledged the packet.** `false` means that no acknowledgement arrived: usually the packet was lost, but it may also have arrived with its acknowledgements lost on the way back. `endPacket(false)` sends once without waiting.
 
 **Call `begin()` with the other LED off.** It measures the dark level. After that, the dark level follows the ambient light by itself, including a lamp being switched on or off.
 
@@ -161,7 +162,8 @@ Each board picks a random session number when it starts. Together with the seque
 - ADC noise;
 - ambient light, and lamps switched on and off;
 - mains flicker;
-- independent, drifting clocks on the two boards.
+- independent, drifting clocks on the two boards;
+- two boards using the real blocking API at the same time, including both sending at once.
 
 ```bash
 python -m pip install ziglang
@@ -176,6 +178,7 @@ On Windows, `extras/test/run_tests.ps1` builds and runs it in one step.
 - Point to point: there are no addresses.
 - Timing is done by busy waiting, so heavy interrupt load can disturb it. `FrameInfo::lateMaxUs` shows how late the measurements start. The library has not been tested with WiFi active.
 - At 256 bit/s a 64-byte frame keeps the CPU busy for over 2 seconds.
+- `begin()` sets the ESP32 ADC to 12 bits and 0 dB attenuation for all channels, because the LED needs it. If your sketch also reads other analog inputs, set their attenuation again after `begin()` with `analogSetPinAttenuation(pin, ADC_11db)`.
 
 ## Changelog
 
@@ -186,6 +189,7 @@ See [CHANGELOG.md](CHANGELOG.md) for what changed in each version.
 - P. Dietz, W. Yerazunis, D. Leigh, [*Very Low-Cost Sensing and Communication Using Bidirectional LEDs*](https://www.merl.com/publications/docs/TR2003-35.pdf), MERL TR2003-35, 2003. The original idea of using the same LED to transmit and to sense light.
 - [AX.25](https://www.ax25.net/AX25.2.2-Jul%2098-2.pdf) and amateur Packet Radio, for the name, the idea of a small acknowledged packet link, and the frame check sequence.
 - Sandeep Mistry's [arduino-LoRa](https://github.com/sandeepmistry/arduino-LoRa) library, whose API PacketLED follows.
+- Giovanni Blu Mitolo's [PJON AnalogSampling](https://github.com/gioblu/PJON/tree/master/src/strategies/AnalogSampling), a close precedent: since 2011 it has used a single LED per device as both emitter and receiver, read through the ADC.
 
 ## Help us
 

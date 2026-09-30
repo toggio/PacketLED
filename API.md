@@ -13,7 +13,7 @@ PacketLED led(phy);
 
 ### `ArduinoLedPhy(uint8_t anodePin, uint8_t cathodePin)`
 
-The physical layer for ESP32 boards. `anodePin` goes to the LED anode through the resistor and must be an ADC1 input. `cathodePin` goes to the LED cathode. Declare it as a global and pass it to `PacketLED`.
+The physical layer for ESP32 boards. `anodePin` goes to the LED anode through the resistor, `cathodePin` to the LED cathode. Both must work as outputs, and `anodePin` must also be an ADC1 input: on the classic ESP32, GPIO34-39 are inputs only and cannot be used. Tested pairs: 32/33 on the ESP32, 0/1 on the ESP32-C3. Declare it as a global and pass it to `PacketLED`.
 
 ### `bool begin(uint32_t bitRate = 1024)`
 
@@ -22,6 +22,8 @@ Initializes the pins and the ADC and measures the dark level. Call it while the 
 `bitRate` must be the same on both boards. Use 1024, 512 or 256: lower rates reach further. With generic 3 mm diffused LEDs that means about 3, 5 and 8 cm; clear narrow-beam LEDs reach much further (see the README). Any value in between works too.
 
 Returns `false` if the bit rate is out of range or too fast for the board; the previous settings are then kept. It can be called again at any time to change the bit rate.
+
+On the ESP32, `begin()` sets the ADC to 12 bits and 0 dB attenuation for **all** channels, which the LED needs. If the sketch reads other analog inputs, set their attenuation again after `begin()`, for example with `analogSetPinAttenuation(pin, ADC_11db)`.
 
 ### `void end()`
 
@@ -36,24 +38,24 @@ Starts a new packet. Always returns 1.
 ### `size_t write(uint8_t b)`
 ### `size_t write(const uint8_t *buffer, size_t size)`
 
-Adds bytes to the packet. `print()` and `println()` work too. A packet holds up to 64 bytes (`lx25::kMaxPayload`). Bytes beyond that are not added: `write()` returns 0 and `endPacket()` fails.
+Adds bytes to the packet. `print()` and `println()` work too. A packet holds up to 64 bytes (`lx25::kMaxPayload`). Bytes beyond that are not added: the single-byte `write()` returns 0, the buffer version returns how many bytes fitted, and in both cases the next `endPacket()` fails without sending anything.
 
 ### `bool endPacket(bool confirmed = true)`
 
 Sends the packet.
 
-- `confirmed = true`: waits up to 400 ms for the acknowledgement and retransmits after a short random pause, up to 3 attempts in total. Returns `true` when the packet has been acknowledged.
+- `confirmed = true`: waits up to 400 ms for the acknowledgement; if none arrives, listens for a random 20-219 ms and sends again, up to 3 attempts in total. Returns `true` when the packet has been acknowledged. `false` means that no acknowledgement arrived: usually the packet was lost, but it may have arrived with its acknowledgements lost.
 - `confirmed = false`: sends once and returns `true`. The receiver still acknowledges it, but the acknowledgement is ignored.
 
 Returns `false` if the packet was longer than 64 bytes. The call blocks until the outcome is known.
 
-If a frame has just been received, it first waits until 10 ms have passed since its end, so that the other board is listening again.
+Before each attempt it listens until the light has been off for a few milliseconds (at most 0.5 s), so as not to start over a frame that is already on its way; a frame arriving meanwhile is received first. If a frame has just been received, it also waits until 10 ms have passed since its end, so that the other board is listening again.
 
 ```cpp
 led.beginPacket();
 led.print("T=");
 led.print(23.4);
-if (!led.endPacket()) Serial.println("not delivered");
+if (!led.endPacket()) Serial.println("not confirmed");
 ```
 
 ### `bool send(const uint8_t *data, size_t len)`
@@ -63,7 +65,7 @@ Shortcuts for `beginPacket()`, `write()` and `endPacket(true)`.
 
 ### `uint8_t lastAttempts()`
 
-Attempts used by the last confirmed send: 1 means first try, 0 means not delivered.
+Attempts used by the last confirmed send: 1 means first try, 0 means not confirmed.
 
 ## Receiving
 
@@ -143,7 +145,7 @@ A short description of a `Result`.
 
 ### `PacketLED::FrameInfo`
 
-Filled for every received frame. Fields after the point of failure are 0.
+Filled for every received frame. Fields after the point of failure are 0, except `minMarginLsb`, which stays at `INT32_MAX` if no data bit was read.
 
 | Field | Meaning |
 |---|---|

@@ -16,7 +16,8 @@
  *
  * Wiring: LED_ANODE_PIN -> resistor -> LED anode, LED cathode -> LED_CATHODE_PIN
  * (see the README for the resistor value).
- * LED_ANODE_PIN must be an ADC1 pin.
+ * LED_ANODE_PIN must be an ADC1 pin that also works as an output (32/33 suit
+ * the ESP32, 0/1 the ESP32-C3).
  */
 
 #include <PacketLED.h>
@@ -115,10 +116,10 @@ void runBenchmark(uint16_t n, bool binary) {
       if (led.lastAttempts() == 1) ++firstTry;
     }
     if (verbose || !sent || led.lastAttempts() > 1)
-      Serial.printf("#%u %s (attempts %u)\n", i, sent ? "delivered" : "NOT delivered", led.lastAttempts());
+      Serial.printf("#%u %s (attempts %u)\n", i, sent ? "confirmed" : "NOT confirmed", led.lastAttempts());
   }
   const uint32_t ms = millis() - start;
-  Serial.printf("%s: delivered %u/%u, first try %u, %lu ms, %lu ms/packet, throughput %lu bit/s\n",
+  Serial.printf("%s: confirmed %u/%u, first try %u, %lu ms, %lu ms/packet, throughput %lu bit/s\n",
                 binary ? "BINARY TEST" : "BENCHMARK", ok, done, firstTry, (unsigned long)ms,
                 (unsigned long)(done ? ms / done : 0), (unsigned long)(ms ? bytes * 8000UL / ms : 0));
 }

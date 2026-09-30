@@ -70,7 +70,8 @@ class LedPhy {
  * LedPhy for Arduino (ESP32 family).
  *
  * Wiring: anode pin -> resistor -> LED anode, LED cathode -> cathode pin.
- * The anode pin must be an ADC1 input.
+ * Both pins must work as outputs, and the anode pin must also be an ADC1
+ * input (on the classic ESP32, GPIO34-39 are inputs only).
  */
 class ArduinoLedPhy : public LedPhy {
  public:

@@ -6,6 +6,17 @@
   resistor and distance, and BeamBreak, a light barrier with synchronous
   detection.
 - library.json for the PlatformIO registry.
+- Fixed: two boards sending at the same time could both fail all their
+  attempts, because the pause before a retry was spent deaf and was much
+  shorter than a frame. A device now listens before transmitting, and during
+  a longer random pause (20-219 ms) before each retry, so the side that
+  starts again first is received by the other. Found by an external audit.
+- Documentation: both LED pins must work as outputs (GPIO34-39 of the classic
+  ESP32 cannot be used); begin() changes the attenuation of every ADC channel;
+  endPacket() returning false means "not confirmed", not "not received";
+  three attempts per packet, not three retransmissions. PJON AnalogSampling
+  added to the credits as a close precedent.
+- New two-node host tests: both boards calling send() at the same time.
 
 ## 1.0.2
 

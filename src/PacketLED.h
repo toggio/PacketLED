@@ -89,6 +89,9 @@ constexpr uint8_t kMaxRetries = 3;
 constexpr uint32_t kTurnaroundMs = 20;
 constexpr uint32_t kTxGapMs = 10;              // pause after the end of a received frame before sending
 constexpr uint32_t kAckTimeoutMs = 400;
+constexpr uint32_t kBackoffMinMs = 20;         // random pause before a retry: 20 to 219 ms
+constexpr uint32_t kBackoffSpanMs = 200;
+constexpr uint32_t kMaxQuietWaitMs = 500;      // longest wait for a quiet channel before sending
 constexpr uint8_t kTypeData = 0x44;
 constexpr uint8_t kTypeAck = 0x41;
 
@@ -148,12 +151,14 @@ class PacketLED PACKETLED_BASE {
   int beginPacket();
 
   /**
-   * Sends the packet built with write() / print().
+   * Sends the packet built with write() / print(), after listening until the
+   * light has been off for a few milliseconds.
    *
-   * @param confirmed true: waits for the acknowledgement and retransmits up to
-   *                  3 times. false: sends once.
-   * @return true if acknowledged (or sent, when not confirmed); false if not
-   *         acknowledged or if more than 64 bytes were written.
+   * @param confirmed true: waits for the acknowledgement, up to 3 attempts in
+   *                  total. false: sends once.
+   * @return true if acknowledged (or sent, when not confirmed); false if no
+   *         acknowledgement arrived (the packet may still have been received)
+   *         or if more than 64 bytes were written.
    */
   bool endPacket(bool confirmed = true);
 
@@ -222,6 +227,8 @@ class PacketLED PACKETLED_BASE {
   Event fail(Result r);
   Event handleFrame(uint8_t type, uint8_t session, uint8_t seq, const uint8_t *data, uint8_t len);
   bool transmitPacket(bool confirmed);
+  void waitForQuiet();
+  void listenFor(uint32_t us);
   void transmit(uint8_t type, uint8_t session, uint8_t seq, const uint8_t *data, uint8_t len);
   uint16_t integrateAt(uint32_t startAt, uint32_t &startUs);
   void waitUntil(uint32_t t);
@@ -241,7 +248,7 @@ class PacketLED PACKETLED_BASE {
   bool windowChosen_ = false;
   uint32_t riseStart_ = 0, lastLitStart_ = 0;
   uint32_t lastListenUs_ = 0, lastRxEndUs_ = 0;
-  bool resumed_ = false, riseSeen_ = true;
+  bool riseSeen_ = true;
   uint32_t frameWindowUs_ = 0;
 
   uint8_t txBuf_[lx25::kMaxPayload] = {};

@@ -5,6 +5,7 @@
 - New examples: LightMeter, to see how much light arrives and choose LEDs,
   resistor and distance, and BeamBreak, a light barrier with synchronous
   detection.
+- library.json for the PlatformIO registry.
 
 ## 1.0.2
 

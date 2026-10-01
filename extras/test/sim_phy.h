@@ -52,6 +52,7 @@ struct SensorModel {
   double hum = 0;              // mains flicker amplitude (LSB per us, 50 Hz)
   double pulses = 0;           // square-wave flicker (LSB per us while on)
   double pulseOnUs = 16000, pulsePeriodUs = 20000;
+  double pulseStartUs = 0;     // the flicker starts at this true time
   double noiseLsb = 5, noiseRel = 0.03;
   double setupUs = 45;         // call -> start of integration
   double sampleDelayUs = 25;   // the ADC samples a little after the read call
@@ -116,6 +117,7 @@ class SimPhy : public LedPhy {
     double sum = 0;
     for (double k = std::floor(a / m_.pulsePeriodUs); k * m_.pulsePeriodUs < b; k += 1) {
       const double on0 = k * m_.pulsePeriodUs, on1 = on0 + m_.pulseOnUs;
+      if (on0 < m_.pulseStartUs) continue;
       const double lo = on0 > a ? on0 : a, hi = on1 < b ? on1 : b;
       if (hi > lo) sum += hi - lo;
     }

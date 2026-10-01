@@ -1,5 +1,5 @@
 /*
- * PacketLED v. 1.0.2 - 24/09/2026
+ * PacketLED v. 1.1.0 - 01/10/2026
  *
  * Packet communication over bidirectional LEDs, inspired by Packet Radio.
  *
@@ -39,7 +39,7 @@
 #define PACKETLED_OVERRIDE
 #endif
 
-#define PACKETLED_VERSION "1.0.2"
+#define PACKETLED_VERSION "1.1.0"
 
 /*
  * LX.25 frame (Manchester bits, MSB first: 0 = light then dark, 1 = dark then light):
@@ -70,6 +70,7 @@ constexpr uint32_t kGuardUs = 3000;
 constexpr uint32_t kListenWindowUs = 600;      // minimum; longer at low rates (see begin())
 constexpr uint32_t kMaxListenWindowUs = 1200;
 constexpr uint32_t kListenGapUs = 3000;        // a longer pause between two readings: the listener was away
+constexpr uint32_t kUnseenWindowMs = 50;       // a SYNC seen in part is accepted only this soon after sending
 constexpr uint16_t kMinLightLsb = 60;          // SYNC detection: minimum rise over the dark level
 constexpr uint8_t kNoiseFactor = 3;            // ... and at least this many times the resting noise
 constexpr uint32_t kAmbientAdoptUs = 100000;   // steady light longer than this becomes the new dark level
@@ -247,7 +248,7 @@ class PacketLED PACKETLED_BASE {
   bool prevLight_ = false;
   bool windowChosen_ = false;
   uint32_t riseStart_ = 0, lastLitStart_ = 0;
-  uint32_t lastListenUs_ = 0, lastRxEndUs_ = 0;
+  uint32_t lastListenUs_ = 0, lastRxEndUs_ = 0, lastTxEndUs_ = 0;
   bool riseSeen_ = true;
   uint32_t frameWindowUs_ = 0;
 

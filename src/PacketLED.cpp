@@ -1,5 +1,5 @@
 /*
- * PacketLED v. 1.0.2 - 24/09/2026
+ * PacketLED v. 1.1.0 - 01/10/2026
  *
  * Packet communication over bidirectional LEDs, inspired by Packet Radio.
  *
@@ -308,6 +308,7 @@ void PacketLED::transmit(uint8_t type, uint8_t session, uint8_t seq, const uint8
   // The other side answers 20 ms after this frame, or sends 10 ms after it at
   // the earliest: listening that resumes now sees its SYNC from the start.
   lastListenUs_ = phy_.micros();
+  lastTxEndUs_ = lastListenUs_;
 }
 
 // ---------------------------------------------------------------- receive
@@ -329,13 +330,18 @@ int PacketLED::peek() { return rxPos_ < rxLen_ ? rxBuf_[rxPos_] : -1; }
 
 // One listening measurement. A SYNC is a run of "light" readings lasting
 // kSyncMinUs..kSyncMaxUs, or at least kSyncMinUnseenUs if it was already on when
-// listening resumed. The frame is received from the first dark reading.
+// listening resumed soon after a transmission. The frame is received from the
+// first dark reading.
 PacketLED::Event PacketLED::listenOnce() {
   uint32_t st = 0;
   const uint16_t v = phy_.integrate(listenUs_, st);
   // After a pause in listening (the program was busy between two calls) a light
-  // pulse may have started unseen, and its length is unknown.
+  // pulse may have started unseen, and its length is unknown. Only shortly after
+  // our own transmission is that likely to be the other side's next SYNC: a
+  // shorter SYNC is accepted then, and nowhere else, so that a program that
+  // prints after every rejected frame cannot keep mistaking hum for SYNCs.
   const bool away = (uint32_t)(st - lastListenUs_) > listenUs_ + kListenGapUs;
+  const bool sinceTx = (uint32_t)(st - lastTxEndUs_) < kUnseenWindowMs * 1000UL;
   lastListenUs_ = st;
   // If listening stopped while a pulse was on, its end is unknown too: start over.
   if (away) prevLight_ = false;
@@ -349,7 +355,7 @@ PacketLED::Event PacketLED::listenOnce() {
   if (v > thr) {
     if (!prevLight_) {
       riseStart_ = st;
-      riseSeen_ = !away;
+      riseSeen_ = !(away && sinceTx);
       windowChosen_ = false;
       syncLsb_ = v;
     }

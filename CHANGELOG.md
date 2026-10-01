@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.1.0
 
 - New examples: LightMeter, to see how much light arrives and choose LEDs,
   resistor and distance, and BeamBreak, a light barrier with synchronous
@@ -10,13 +10,18 @@
   attempts, because the pause before a retry was spent deaf and was much
   shorter than a frame. A device now listens before transmitting, and during
   a longer random pause (20-219 ms) before each retry, so the side that
-  starts again first is received by the other. Found by an external audit.
+  starts again first is received by the other.
+- Fixed: after one rejected frame, a program that prints for each frame could
+  keep mistaking mains hum for SYNCs, rejecting one 5-6 ms "frame" after the
+  other, even in the dark. A SYNC seen only in part is now accepted only within
+  50 ms of the device's own transmission, which is where it is needed.
 - Documentation: both LED pins must work as outputs (GPIO34-39 of the classic
   ESP32 cannot be used); begin() changes the attenuation of every ADC channel;
   endPacket() returning false means "not confirmed", not "not received";
   three attempts per packet, not three retransmissions. PJON AnalogSampling
   added to the credits as a close precedent.
-- New two-node host tests: both boards calling send() at the same time.
+- New host tests: both boards calling send() at the same time, and hum
+  after the pauses of a program that prints for every frame.
 
 ## 1.0.2
 

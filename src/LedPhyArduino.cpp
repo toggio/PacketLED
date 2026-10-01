@@ -1,5 +1,5 @@
 /*
- * PacketLED v. 1.0.2 - 24/09/2026
+ * PacketLED v. 1.1.0 - 01/10/2026
  *
  * Packet communication over bidirectional LEDs, inspired by Packet Radio.
  *

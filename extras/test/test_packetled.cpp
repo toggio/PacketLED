@@ -176,6 +176,13 @@ static int backToBack(uint32_t bitRate, double gain, double appDelayUs, uint32_t
   return firstTry;
 }
 
+// Frame handler of a program that prints for 8-20 ms after every frame.
+static SimPhy *gSlowPhy = nullptr;
+static std::mt19937 gSlowRng(5);
+static void slowHandler(const PacketLED::FrameInfo &) {
+  gSlowPhy->setTrueNow(gSlowPhy->trueNow() + 8000 + gSlowRng() % 12000);
+}
+
 struct DuoResult {
   bool sent[2] = {false, false};
   int got[2] = {0, 0};
@@ -255,6 +262,7 @@ static bool expectedToWork(const Case &c, uint32_t rate) {
 int main(int argc, char **argv) {
   int failures = 0;
   const bool onlyDuo = argc > 1 && strcmp(argv[1], "duo") == 0;  // quick run of the two-node tests
+  const bool onlyFlash = argc > 1 && strcmp(argv[1], "flash") == 0;
   Options drift;
   drift.ppm = 100;
   Options lampOn;
@@ -281,6 +289,41 @@ int main(int argc, char **argv) {
       {"sensitive LED, strong hum", 15.0, 0, 0.6, true, {}},
       {"sensitive LED, room light + hum", 15.0, 1.0, 0.6, true, {}},
   };
+  printf("\n== Hum and bright flashes, a program printing after each frame (6 s, no transmitter) ==\n");
+  for (uint32_t rate : {1024u, 256u}) {
+    for (double amp : {0.3, 1.0}) {
+      Channel chA, chB;
+      SensorModel m;
+      m.pulses = amp;  // 10 ms of light every 20 ms, like mains hum seen by a sensitive LED
+      m.pulseOnUs = 10000;
+      m.pulsePeriodUs = 20000;
+      m.pulseStartUs = 200000;  // starting after begin(), so that it stays above the threshold
+      SimPhy pb(chB, chA, m, 97);
+      PacketLED b(pb);
+      b.begin(rate);
+      gSlowPhy = &pb;
+      b.onFrame(slowHandler);
+      // Every 300 ms a 25 ms flash is taken for a SYNC; its frame is rejected and
+      // printed. Hum must not be taken for a SYNC after those pauses.
+      const int flashes = 20;
+      const double first = pb.trueNow() + 300000;
+      for (int k = 0; k < flashes; ++k) {
+        chA.push(first + k * 300000.0, true);
+        chA.push(first + k * 300000.0 + 25000, false);
+      }
+      const double end = first + flashes * 300000.0;
+      while (pb.trueNow() < end) b.parsePacket();
+      const unsigned long frames = (unsigned long)b.stats().syncs;
+      printf("%4u bit/s, hum %.1f: frames %lu for %d flashes\n", rate, amp, frames, flashes);
+      if (frames > (unsigned long)flashes) ++failures;
+    }
+  }
+
+  if (onlyFlash) {
+    printf("\n%s\n", failures ? "*** SOME TESTS FAILED ***" : "ALL TESTS PASSED");
+    return failures ? 1 : 0;
+  }
+
   printf("\n== Two nodes sending at the same time (confirmed 64-byte packets) ==\n");
   for (uint32_t rate : {1024u, 512u, 256u}) {
     for (uint32_t seed : {1u, 17u, 101u}) {

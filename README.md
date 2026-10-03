@@ -13,7 +13,7 @@ With clear, narrow-beam LEDs the link has been tested up to 2.5 m at 1024 bit/s.
 ## Features
 
 - The same LED sends and receives, so a device can talk through the status LED it already has.
-- Line of sight only, from a few centimeters with ordinary LEDs to a couple of meters with clear, narrow-beam ones. There is no radio and nothing to pair, and the light only goes where the LEDs point. There is no encryption or authentication, though: if the data is secret, or a command must only be accepted from a known device, protect it in your application.
+- Line of sight only, from a few centimeters with ordinary LEDs to a couple of meters with clear, narrow-beam ones. There is no radio and nothing to pair, and the light only goes where the LEDs point. There is no encryption or authentication, though: if the data is secret, or a command must only be accepted from a known device, protect it in your application, or use [SecurePair](https://github.com/toggio/SecurePair), which adds both on top of PacketLED.
 - Packets are checked, acknowledged and retransmitted when needed, and duplicates are dropped. `endPacket()` tells you whether the other side confirmed it.
 - The two boards share only light, so they are electrically isolated, and it works where radio is unwanted or not allowed.
 - The receiver adapts to room light, to lamps being switched on and off and to mains flicker.
@@ -185,6 +185,10 @@ On Windows, `extras/test/run_tests.ps1` builds and runs it in one step.
 - Timing is done by busy waiting, so heavy interrupt load can disturb it. `FrameInfo::lateMaxUs` shows how late the measurements start. The library has not been tested with WiFi active.
 - At 256 bit/s a 64-byte frame keeps the CPU busy for over 2 seconds.
 - `begin()` sets the ESP32 ADC to 12 bits and 0 dB attenuation for all channels, because the LED needs it. If your sketch also reads other analog inputs, set their attenuation again after `begin()` with `analogSetPinAttenuation(pin, ADC_11db)`.
+
+## Related projects
+
+[SecurePair](https://github.com/toggio/SecurePair) uses PacketLED to pair ESP32 boards securely. Two boards agree on a key through their LEDs, a person checks that both blink the same short code, and from then on the messages are encrypted and authenticated, over the same LEDs, ESP-NOW or LoRa. It is in beta.
 
 ## Changelog
 

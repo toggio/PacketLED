@@ -1,7 +1,7 @@
 {
   "name": "PacketLED",
   "version": "1.1.0",
-  "description": "Packet communication over bidirectional LEDs, inspired by Packet Radio. Each LED both transmits and senses light, no photodiode needed. LX.25 protocol with CRC-16/X.25, acknowledgements and retransmissions, 256-1024 bit/s, tested up to 2.5 m. LoRa-style API.",
+  "description": "Packet communication over bidirectional LEDs, inspired by Packet Radio. PacketLED lets two boards exchange data through a pair of ordinary LEDs placed face to face. There is no photodiode: each LED emits light to transmit, and is used as a light sensor to receive. Tested up to 2.5 m at 1024 bit/s with clear, narrow-beam LEDs.",
   "keywords": ["led", "optical", "visible light communication", "li-fi", "packet radio", "ax25", "esp32"],
   "repository": {
     "type": "git",

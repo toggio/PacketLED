@@ -335,11 +335,10 @@ int PacketLED::peek() { return rxPos_ < rxLen_ ? rxBuf_[rxPos_] : -1; }
 PacketLED::Event PacketLED::listenOnce() {
   uint32_t st = 0;
   const uint16_t v = phy_.integrate(listenUs_, st);
-  // After a pause in listening (the program was busy between two calls) a light
-  // pulse may have started unseen, and its length is unknown. Only shortly after
-  // our own transmission is that likely to be the other side's next SYNC: a
-  // shorter SYNC is accepted then, and nowhere else, so that a program that
-  // prints after every rejected frame cannot keep mistaking hum for SYNCs.
+  // After a pause in listening a light pulse may have started unseen, so its
+  // length is unknown. Shortly after our own transmission it is probably the
+  // other side's next SYNC, and a shorter one is accepted; at any other time it
+  // is more likely hum.
   const bool away = (uint32_t)(st - lastListenUs_) > listenUs_ + kListenGapUs;
   const bool sinceTx = (uint32_t)(st - lastTxEndUs_) < kUnseenWindowMs * 1000UL;
   lastListenUs_ = st;
@@ -536,7 +535,7 @@ PacketLED::Event PacketLED::handleFrame(uint8_t type, uint8_t session, uint8_t s
     else ++stats_.acksIgnored;
     return Event::Ack;
   }
-  // A restart of the sender changes its session, so session + seq identifies a packet.
+  // The session is picked at random at every start, so session + seq identifies a packet.
   const bool duplicate = lastDataValid_ && session == lastDataSession_ && seq == lastDataSeq_;
   if (duplicate) {
     ++stats_.duplicates;

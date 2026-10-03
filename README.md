@@ -16,7 +16,7 @@ With clear, narrow-beam LEDs the link has been tested up to 2.5 m at 1024 bit/s.
 - Line of sight only, from a few centimeters with ordinary LEDs to a couple of meters with clear, narrow-beam ones. There is no radio and nothing to pair, and the light only goes where the LEDs point. There is no encryption or authentication, though: if the data is secret, or a command must only be accepted from a known device, protect it in your application.
 - Packets are checked, acknowledged and retransmitted when needed, and duplicates are dropped. `endPacket()` tells you whether the other side confirmed it.
 - The two boards share only light, so they are electrically isolated, and it works where radio is unwanted or not allowed.
-- Room light, lamps being switched on and off and mains flicker are handled automatically.
+- The receiver adapts to room light, to lamps being switched on and off and to mains flicker.
 - The API follows the Arduino LoRa library, and `PacketLED` is a `Stream`.
 
 Some things it is good for:
@@ -142,9 +142,9 @@ An LX.25 frame looks like this (see [LX25.md](LX25.md) for the details):
 | PAYLOAD | 0-64 bytes | |
 | FCS | 2 bytes | CRC-16/X.25 |
 
-Bits are Manchester coded: `0` is light then dark, `1` is dark then light. The receiver compares the two halves of each bit, so there is no threshold to calibrate. Steady ambient light and slow flicker, such as 50 Hz mains lighting, cancel out.
+Bits are Manchester coded: `0` is light then dark, `1` is dark then light. The receiver compares the two halves of each bit, so there is no threshold to calibrate. Steady ambient light and slow flicker, such as 50 Hz mains lighting, largely cancel out.
 
-Each board picks a random session number when it starts. Together with the sequence number, it lets the receiver discard duplicates, even after the sender reboots.
+Each board picks a random session number when it starts. Together with the sequence number, it lets the receiver discard duplicates, almost always even after the sender reboots.
 
 ## Examples
 

@@ -69,6 +69,12 @@ The resistor plays no part in receiving. More current means more range: see the 
 
 In the Arduino IDE, open the Library Manager, search for **PacketLED** and click *Install*.
 
+With PlatformIO, add the library to `platformio.ini`:
+
+```ini
+lib_deps = toggio/PacketLED
+```
+
 You can also download the repository as a ZIP file and add it with *Sketch > Include Library > Add .ZIP Library*.
 
 ## Usage
